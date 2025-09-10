@@ -20,9 +20,10 @@ export default function Home() {
   const [searchText, setSearchText] = React.useState("");
   const [filterMedical, setFilterMedical] = React.useState<string[]>([]);
   const [filterState, setFilterState] = React.useState<string[]>([]);
-  const [sortBy, setSortBy] = React.useState<string>("");
-  const [sortDir, setSortDir] = React.useState<string>("asc");
+  const [sortBy, setSortBy] = React.useState<string[]>([]);
+  const [sortDir, setSortDir] = React.useState<{ [key: string]: string }>({});
   const [showFilterDialog, setShowFilterDialog] = React.useState(false);
+  const [filterAgeRange, setFilterAgeRange] = React.useState<string[]>([]);
 
   // Apply search, filters and sorting before pagination
   const filtered = data.filter((d) => {
@@ -30,23 +31,50 @@ export default function Home() {
       ? `${d.patient_name} ${d.contact?.[0]?.email || ''} ${d.patient_id}`.toLowerCase().includes(searchText.toLowerCase())
       : true;
     const matchesMedical = filterMedical.length === 0 ? true : filterMedical.includes(d.medical_issue || '');
+
+    // Age range filtering
+    const matchesAgeRange = filterAgeRange.length === 0 ? true : filterAgeRange.some(range => {
+      const age = d.age || 0;
+      switch (range) {
+        case '0-17': return age >= 0 && age <= 17;
+        case '18-30': return age >= 18 && age <= 30;
+        case '31-50': return age >= 31 && age <= 50;
+        case '51-70': return age >= 51 && age <= 70;
+        case '71+': return age >= 71;
+        default: return true;
+      }
+    });
+
     const matchesState = filterState.length === 0 ? true : filterState.includes(d.contact?.[0]?.address?.split(',').pop()?.trim() || '');
-    return matchesText && matchesMedical && matchesState;
+    return matchesText && matchesMedical && matchesAgeRange && matchesState;
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    if (!sortBy) return 0;
-    if (sortBy === "age") {
-      const av = a.age || 0;
-      const bv = b.age || 0;
-      return sortDir === "asc" ? av - bv : bv - av;
-    }
-    if (sortBy === "name") {
-      const an = (a.patient_name || '').toLowerCase();
-      const bn = (b.patient_name || '').toLowerCase();
-      if (an < bn) return sortDir === "asc" ? -1 : 1;
-      if (an > bn) return sortDir === "asc" ? 1 : -1;
-      return 0;
+    for (const sortField of sortBy) {
+      const direction = sortDir[sortField] || 'asc';
+      let comparison = 0;
+
+      if (sortField === "age") {
+        const av = a.age || 0;
+        const bv = b.age || 0;
+        comparison = av - bv;
+      } else if (sortField === "name") {
+        const an = (a.patient_name || '').toLowerCase();
+        const bn = (b.patient_name || '').toLowerCase();
+        if (an < bn) comparison = -1;
+        else if (an > bn) comparison = 1;
+        else comparison = 0;
+      } else if (sortField === "medical_issue") {
+        const am = (a.medical_issue || '').toLowerCase();
+        const bm = (b.medical_issue || '').toLowerCase();
+        if (am < bm) comparison = -1;
+        else if (am > bm) comparison = 1;
+        else comparison = 0;
+      }
+
+      if (comparison !== 0) {
+        return direction === "asc" ? comparison : -comparison;
+      }
     }
     return 0;
   });
@@ -56,7 +84,7 @@ export default function Home() {
 
   React.useEffect(() => {
     setLoading(true);
-    fetch("/MOCK_DATA 1.json")
+    fetch("/api/getdata")
       .then((res) => res.json())
       .then((apiData: DataProps[]) => {
         console.log(apiData);
@@ -113,13 +141,21 @@ export default function Home() {
         <div>
           <button
             className={`p-1 text-black border-b-4 ${view === "row" ? "border-blue-400" : "border-gray-400"} hover:border-blue-400`}
-            onClick={() => setView("row")}
+            onClick={() => {
+              setView("row");
+              setPageSize(20); // Default page size for table view
+              setPage(1);
+            }}
           >
             Table View
           </button>
           <button
-            className={`p-1  text-black border-b-4 ${view === "card" ? "border-blue-400" : "border-gray-400"} hover:border-blue-400`}
-            onClick={() => setView("card")}
+            className={`p-1 text-black border-b-4 ${view === "card" ? "border-blue-400" : "border-gray-400"} hover:border-blue-400`}
+            onClick={() => {
+              setView("card");
+              setPageSize(12); // Default page size for card view
+              setPage(1);
+            }}
           >
             Card View
           </button>
@@ -127,11 +163,11 @@ export default function Home() {
         <div className="relative filter-dialog-container">
           <button
             onClick={() => setShowFilterDialog(!showFilterDialog)}
-            className="border px-3 py-2 rounded bg-white hover:bg-gray-50 flex items-center gap-2"
+            className="border px-3 py-2 rounded bg-white hover:bg-gray-50 flex items-center gap-2 text-black"
           >
             <span>Filters</span>
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              {filterMedical.length + filterState.length}
+              {filterMedical.length + filterState.length + filterAgeRange.length}
             </span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -140,12 +176,37 @@ export default function Home() {
 
           {/* Filter Dialog */}
           {showFilterDialog && (
-            <div className="absolute top-full mt-1 -left-50 bg-white border rounded-lg shadow-lg z-10 p-4 w-80">
+            <div className="absolute top-full mt-1 -left-50 bg-white border rounded-lg shadow-lg z-10 p-4 w-80 text-black">
               <h3 className="font-semibold mb-3">Filter Options</h3>
+
+              {/* Age Range */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-black">Age Range</label>
+                <div className="space-y-1">
+                  {['0-17', '18-30', '31-50', '51-70', '71+'].map(range => (
+                    <label key={range} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filterAgeRange.includes(range)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFilterAgeRange([...filterAgeRange, range]);
+                          } else {
+                            setFilterAgeRange(filterAgeRange.filter(f => f !== range));
+                          }
+                          setPage(1);
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-black">{range} years</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {/* Medical Issues */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Medical Issues</label>
+                <label className="block text-sm font-medium mb-2 text-black">Medical Issues</label>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {Array.from(new Set(data.map(d => d.medical_issue).filter(Boolean))).map(mi => (
                     <label key={mi} className="flex items-center">
@@ -162,7 +223,7 @@ export default function Home() {
                         }}
                         className="mr-2"
                       />
-                      <span className="text-sm">{mi}</span>
+                      <span className="text-sm text-black">{mi}</span>
                     </label>
                   ))}
                 </div>
@@ -170,7 +231,7 @@ export default function Home() {
 
               {/* States/Addresses */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Locations</label>
+                <label className="block text-sm font-medium mb-2 text-black">Locations</label>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {Array.from(new Set(data.map(d => d.contact?.[0]?.address?.split(',').pop()?.trim()).filter(Boolean))).map(s => (
                     <label key={s} className="flex items-center">
@@ -187,15 +248,18 @@ export default function Home() {
                         }}
                         className="mr-2"
                       />
-                      <span className="text-sm">{s}</span>
+                      <span className="text-sm text-black">{s}</span>
                     </label>
                   ))}
                 </div>
-              </div>              <div className="flex justify-between">
+              </div>
+
+              <div className="flex justify-between">
                 <button
                   onClick={() => {
                     setFilterMedical([]);
                     setFilterState([]);
+                    setFilterAgeRange([]);
                     setPage(1);
                   }}
                   className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
@@ -221,37 +285,83 @@ export default function Home() {
             value={searchText}
             onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
             placeholder="Search name, email, or ID..."
-            className="border px-3 py-2 rounded w-64"
+            className="border px-3 py-2 rounded w-64 text-black"
           />
 
-          {/* Filter Dropdown Button */}
-
-
-          {/* Sort Controls */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border px-2 py-2 rounded"
-          >
-            <option value="">No sort</option>
-            <option value="age">Sort by Age</option>
-            <option value="name">Sort by Name</option>
-          </select>
-
-          {sortBy && (
-            <button
-              onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
-              className="border px-3 py-2 rounded hover:bg-gray-50 flex items-center gap-1"
+          {/* Sort Controls - Multiple Sorting */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-black">Add Sort:</label>
+            <select
+              value=""
+              onChange={(e) => {
+                const newSort = e.target.value;
+                if (newSort && !sortBy.includes(newSort)) {
+                  setSortBy([...sortBy, newSort]);
+                  setSortDir({ ...sortDir, [newSort]: 'asc' });
+                }
+              }}
+              className="border px-2 py-2 rounded text-black"
             >
-              {sortDir === "asc" ? "↑" : "↓"}
-              {sortDir === "asc" ? "Asc" : "Desc"}
-            </button>
+              <option value="">Select field...</option>
+              <option value="age">Age</option>
+              <option value="name">Name</option>
+              <option value="medical_issue">Medical Issue</option>
+            </select>
+          </div>
+
+          {/* Current sorts display */}
+          {sortBy.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-black">Active Sorts:</span>
+              {sortBy.map((field, index) => (
+                <div key={field} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-black">
+                  <span className="text-sm">
+                    {index + 1}. {field === 'medical_issue' ? 'Medical Issue' : field.charAt(0).toUpperCase() + field.slice(1)}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const newSortDir = { ...sortDir };
+                      newSortDir[field] = newSortDir[field] === "asc" ? "desc" : "asc";
+                      setSortDir(newSortDir);
+                    }}
+                    className="text-xs hover:bg-gray-200 px-1 rounded"
+                  >
+                    {sortDir[field] === "asc" ? "↑" : "↓"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy(sortBy.filter(s => s !== field));
+                      const newSortDir = { ...sortDir };
+                      delete newSortDir[field];
+                      setSortDir(newSortDir);
+                    }}
+                    className="text-xs hover:bg-gray-200 px-1 rounded text-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
         {/* Selected Filters Display */}
-        {(filterMedical.length > 0 || filterState.length > 0) && (
+        {(filterMedical.length > 0 || filterState.length > 0 || filterAgeRange.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-2">
+            {filterAgeRange.map(filter => (
+              <span key={`age-${filter}`} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                Age: {filter} years
+                <button
+                  onClick={() => {
+                    setFilterAgeRange(filterAgeRange.filter(f => f !== filter));
+                    setPage(1);
+                  }}
+                  className="ml-1 hover:text-purple-600"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
             {filterMedical.map(filter => (
               <span key={`medical-${filter}`} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                 Medical: {filter}
