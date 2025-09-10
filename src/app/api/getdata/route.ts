@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 
 export async function GET() {
-  const filePath = path.join(process.cwd(), "public", "MOCK_data 1.json");
+  const filePath = path.join(process.cwd(), "public", "MOCK_DATA 1.json");
   try {
     const data = await fs.readFile(filePath, "utf8");
     return new Response(data, {

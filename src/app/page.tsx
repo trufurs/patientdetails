@@ -85,9 +85,8 @@ export default function Home() {
   React.useEffect(() => {
     setLoading(true);
     fetch("/api/getdata")
-      .then((res) => res.json())
+      .then((res) => res.status === 200 ? res.json() : Promise.reject("Failed to load"))
       .then((apiData: DataProps[]) => {
-        console.log(apiData);
         const processedData = apiData.map((user: DataProps) => ({
           ...user,
           medical_issue: user.medical_issue || medicalIssues[Math.floor(Math.random() * medicalIssues.length)]
