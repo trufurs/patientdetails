@@ -5,10 +5,12 @@ A modern, responsive patient management system built with Next.js 15, TypeScript
 ## 🚀 Features
 
 ### 📊 **Dual View Modes**
+
 - **Table View**: Traditional tabular layout for detailed data viewing
 - **Card View**: Modern card-based layout with responsive grid system
 
 ### 🔍 **Advanced Search & Filtering**
+
 - **Real-time Search**: Search across patient names, emails, and patient IDs
 - **Age Range Filtering**: Filter patients by predefined age groups (0-17, 18-30, 31-50, 51-70, 71+)
 - **Medical Issue Filtering**: Filter by specific medical conditions
@@ -16,18 +18,21 @@ A modern, responsive patient management system built with Next.js 15, TypeScript
 - **Interactive Filter Dialog**: Easy-to-use filter interface with active filter display
 
 ### 📋 **Multi-Field Sorting**
+
 - **Multiple Sort Criteria**: Sort by multiple fields simultaneously
 - **Flexible Sort Order**: Independent ascending/descending order for each field
 - **Supported Sort Fields**: Age, Name, Medical Issue
 - **Priority-based Sorting**: Maintain sort priority order with visual indicators
 
 ### 📄 **Pagination & Layout**
+
 - **Customizable Page Sizes**: Different options for table (10, 20, 50) and card (6, 12, 24) views
 - **Responsive Pagination**: Navigate through large datasets efficiently
 - **Auto Page Size Adjustment**: Automatically adjusts page size when switching between views
 - **Responsive Card Grid**: Customizable column layout for different screen sizes
 
 ### 📱 **Responsive Design**
+
 - **Mobile-First Approach**: Optimized for all device sizes
 - **Touch-Friendly Interface**: Easy navigation on mobile devices
 - **Adaptive Layouts**: Components adjust based on screen size
@@ -78,17 +83,20 @@ memberlistdesign/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/trufurs/PatienDetails.git
    cd memberlistdesign
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -118,15 +126,18 @@ npm run lint
 
 ```typescript
 type DataProps = {
-  patient_id: number;           // Unique patient identifier
-  patient_name: string;         // Full patient name
-  age: number;                  // Patient age
-  photo_url: string | null;     // Profile photo URL (optional)
-  contact: {                    // Contact information array
-    address: string;            // Full address
-    number: string;             // Phone number
-    email: string;              // Email address
-  }[] | null;
+  patient_id: number; // Unique patient identifier
+  patient_name: string; // Full patient name
+  age: number; // Patient age
+  photo_url: string | null; // Profile photo URL (optional)
+  contact:
+    | {
+        // Contact information array
+        address: string; // Full address
+        number: string; // Phone number
+        email: string; // Email address
+      }[]
+    | null;
   medical_issue: string | null; // Current medical condition
 };
 ```
@@ -134,20 +145,24 @@ type DataProps = {
 ## 🎨 UI Components
 
 ### Main Dashboard (`page.tsx`)
+
 - **State Management**: Handles all application state including filters, sorting, pagination
 - **Data Processing**: Implements filtering, sorting, and pagination logic
 - **View Switching**: Manages toggle between table and card views
 
 ### Row View (`rowview.tsx`)
+
 - **Table Display**: Renders patient data in tabular format
 - **Responsive Columns**: Adjusts column visibility based on screen size
 
 ### Card View (`cardview.tsx`)
+
 - **Card Layout**: Modern card-based patient display
 - **Image Handling**: Safe image loading with fallback
 - **Responsive Grid**: Adapts to different screen sizes
 
 ### Utility Components
+
 - **Avatar**: User profile image component
 - **SafeImage**: Image component with error handling
 - **Navbar**: Navigation and branding component
@@ -157,14 +172,18 @@ type DataProps = {
 ### Adding New Filter Types
 
 1. **Add state variable**:
+
    ```typescript
    const [filterNewType, setFilterNewType] = React.useState<string[]>([]);
    ```
 
 2. **Update filter logic**:
+
    ```typescript
-   const matchesNewType = filterNewType.length === 0 ? true : 
-     filterNewType.includes(d.new_field || '');
+   const matchesNewType =
+     filterNewType.length === 0
+       ? true
+       : filterNewType.includes(d.new_field || "");
    ```
 
 3. **Add to filter dialog**: Include new filter section in the UI
@@ -172,6 +191,7 @@ type DataProps = {
 ### Adding New Sort Fields
 
 1. **Update sort logic** in the `sorted` computation:
+
    ```typescript
    else if (sortField === "new_field") {
      // Add comparison logic for new field
@@ -186,11 +206,12 @@ type DataProps = {
 ### Customizing Page Sizes
 
 Modify the page size options in the respective view sections:
+
 ```typescript
 // For table view
 <option value={25}>25</option>
 
-// For card view  
+// For card view
 <option value={18}>18</option>
 ```
 
@@ -204,6 +225,7 @@ Modify the page size options in the respective view sections:
 ## 🔍 Search Functionality
 
 The search feature performs real-time filtering across:
+
 - Patient names (case-insensitive)
 - Email addresses
 - Patient IDs (partial matching)
@@ -211,6 +233,7 @@ The search feature performs real-time filtering across:
 ## 🎯 Filter Categories
 
 ### Age Ranges
+
 - **0-17**: Children and minors
 - **18-30**: Young adults
 - **31-50**: Middle-aged adults
@@ -218,13 +241,16 @@ The search feature performs real-time filtering across:
 - **71+**: Seniors
 
 ### Medical Issues
+
 Dynamic list based on available data including:
+
 - Headache, Fever, Cough
 - Nausea, Fatigue, Dizziness
 - Back pain, Chest pain
 - Shortness of breath, Anxiety
 
 ### Location Filters
+
 Extracted from patient address data (last part of comma-separated address)
 
 ## 🚀 Performance Optimization
