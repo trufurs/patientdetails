@@ -20,7 +20,7 @@ export default function SafeImage({
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    if (hasError) {
+    if (hasError || !src || src.toLowerCase() === "null") {
         // Use Avatar component as fallback
         return (
             <Avatar
